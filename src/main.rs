@@ -3,7 +3,8 @@
 //! A simple Mario-like platformer game built with macroquad.
 //! Run this to start the game and enjoy jumping around!
 
-mod simple_level;
+pub mod simple_level;
+pub mod screenshot;
 
 use macroquad::prelude::*;
 
