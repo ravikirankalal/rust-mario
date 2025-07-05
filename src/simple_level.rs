@@ -61,6 +61,14 @@ impl Platform {
     }
 }
 
+/// Animation states for the player
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AnimationState {
+    Idle,
+    Walking,
+    Jumping,
+}
+
 /// Represents the player character (Mario)
 #[derive(Debug)]
 pub struct Player {
@@ -71,6 +79,9 @@ pub struct Player {
     pub on_ground: bool,
     pub width: f32,
     pub height: f32,
+    pub facing_right: bool,
+    pub animation_state: AnimationState,
+    pub animation_timer: f32,
 }
 
 impl Player {
@@ -84,6 +95,9 @@ impl Player {
             on_ground: false,
             width: PLAYER_SIZE,
             height: PLAYER_SIZE,
+            facing_right: true,
+            animation_state: AnimationState::Idle,
+            animation_timer: 0.0,
         }
     }
 
@@ -164,6 +178,21 @@ impl Player {
         if self.on_ground {
             self.velocity_x *= 0.8;
         }
+
+        // Update animation state and timer
+        self.animation_timer += delta_time;
+        self.update_animation_state();
+    }
+
+    /// Update animation state based on player movement
+    fn update_animation_state(&mut self) {
+        if !self.on_ground {
+            self.animation_state = AnimationState::Jumping;
+        } else if self.velocity_x.abs() > 10.0 {
+            self.animation_state = AnimationState::Walking;
+        } else {
+            self.animation_state = AnimationState::Idle;
+        }
     }
 
     /// Handle player input for movement and jumping
@@ -171,8 +200,10 @@ impl Player {
         // Horizontal movement
         if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
             self.velocity_x = -PLAYER_SPEED;
+            self.facing_right = false;
         } else if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
             self.velocity_x = PLAYER_SPEED;
+            self.facing_right = true;
         } else {
             self.velocity_x = 0.0;
         }
@@ -184,16 +215,71 @@ impl Player {
         }
     }
 
-    /// Draw the player
+    /// Draw the player with enhanced Mario-like graphics
     pub fn draw(&self) {
-        // Draw player as a red square (representing Mario)
-        draw_rectangle(self.x, self.y, self.width, self.height, RED);
-        // Add a border for visual clarity
-        draw_rectangle_lines(self.x, self.y, self.width, self.height, 2.0, MAROON);
-        
-        // Add simple "eyes" to show direction
-        draw_circle(self.x + 5.0, self.y + 5.0, 2.0, WHITE);
-        draw_circle(self.x + 15.0, self.y + 5.0, 2.0, WHITE);
+        let x = self.x;
+        let y = self.y;
+        let w = self.width;
+        let h = self.height;
+
+        // Animation-based slight bobbing for walking
+        let walking_offset = if self.animation_state == AnimationState::Walking {
+            (self.animation_timer * 8.0).sin() * 1.0
+        } else {
+            0.0
+        };
+        let draw_y = y + walking_offset;
+
+        // Mario's body (overalls)
+        draw_rectangle(x + 2.0, draw_y + 8.0, w - 4.0, h - 8.0, BLUE);
+        draw_rectangle_lines(x + 2.0, draw_y + 8.0, w - 4.0, h - 8.0, 1.0, DARKBLUE);
+
+        // Mario's shirt (red)
+        draw_rectangle(x + 4.0, draw_y + 10.0, w - 8.0, 6.0, RED);
+
+        // Mario's head (skin color - light brown)
+        let head_color = Color::new(0.96, 0.85, 0.73, 1.0); // Peach/skin color
+        draw_circle(x + w / 2.0, draw_y + 6.0, 6.0, head_color);
+
+        // Mario's hat (red)
+        draw_rectangle(x + 3.0, draw_y + 1.0, w - 6.0, 6.0, RED);
+        draw_rectangle_lines(x + 3.0, draw_y + 1.0, w - 6.0, 6.0, 1.0, MAROON);
+
+        // Hat emblem (M)
+        draw_circle(x + w / 2.0, draw_y + 3.0, 2.5, WHITE);
+        draw_text("M", x + w / 2.0 - 2.0, draw_y + 5.5, 8.0, RED);
+
+        // Eyes (direction-aware)
+        let eye_offset = if self.facing_right { 1.0 } else { -1.0 };
+        draw_circle(x + w / 2.0 - 2.0 + eye_offset, draw_y + 6.0, 1.0, BLACK);
+        draw_circle(x + w / 2.0 + 2.0 + eye_offset, draw_y + 6.0, 1.0, BLACK);
+
+        // Mustache
+        draw_rectangle(x + w / 2.0 - 3.0, draw_y + 8.0, 6.0, 2.0, Color::new(0.4, 0.2, 0.1, 1.0));
+
+        // Arms based on animation
+        let arm_swing = if self.animation_state == AnimationState::Walking {
+            (self.animation_timer * 6.0).sin() * 2.0
+        } else {
+            0.0
+        };
+
+        // Left arm
+        draw_rectangle(x - 1.0, draw_y + 10.0 + arm_swing, 4.0, 8.0, head_color);
+        // Right arm  
+        draw_rectangle(x + w - 3.0, draw_y + 10.0 - arm_swing, 4.0, 8.0, head_color);
+
+        // Feet/shoes (brown)
+        let foot_color = Color::new(0.4, 0.2, 0.1, 1.0);
+        draw_rectangle(x + 1.0, draw_y + h - 2.0, 6.0, 3.0, foot_color);
+        draw_rectangle(x + w - 7.0, draw_y + h - 2.0, 6.0, 3.0, foot_color);
+
+        // Jumping pose adjustments
+        if self.animation_state == AnimationState::Jumping {
+            // Arms up when jumping
+            draw_rectangle(x - 2.0, draw_y + 6.0, 4.0, 6.0, head_color);
+            draw_rectangle(x + w - 2.0, draw_y + 6.0, 4.0, 6.0, head_color);
+        }
     }
 
     /// Check if player intersects with a rectangle (for goal detection)
@@ -239,11 +325,144 @@ impl Goal {
     }
 }
 
+/// Represents a decorative tree in the environment
+#[derive(Debug, Clone)]
+pub struct Tree {
+    pub x: f32,
+    pub y: f32,
+    pub height: f32,
+}
+
+impl Tree {
+    /// Create a new tree at the specified position
+    pub fn new(x: f32, y: f32, height: f32) -> Self {
+        Self { x, y, height }
+    }
+
+    /// Draw the tree
+    pub fn draw(&self) {
+        let trunk_width = 8.0;
+        let trunk_height = self.height * 0.4;
+        let crown_radius = self.height * 0.3;
+
+        // Tree trunk (brown)
+        let trunk_color = Color::new(0.4, 0.2, 0.1, 1.0);
+        draw_rectangle(
+            self.x - trunk_width / 2.0,
+            self.y - trunk_height,
+            trunk_width,
+            trunk_height,
+            trunk_color,
+        );
+
+        // Tree crown (green circles for leaves)
+        let crown_y = self.y - trunk_height - crown_radius;
+        draw_circle(self.x, crown_y, crown_radius, GREEN);
+        draw_circle(self.x - crown_radius * 0.3, crown_y + crown_radius * 0.2, crown_radius * 0.8, DARKGREEN);
+        draw_circle(self.x + crown_radius * 0.3, crown_y + crown_radius * 0.2, crown_radius * 0.8, DARKGREEN);
+    }
+}
+
+/// Enemy movement direction
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum EnemyDirection {
+    Left,
+    Right,
+}
+
+/// Represents a simple enemy (Goomba-like)
+#[derive(Debug, Clone)]
+pub struct Enemy {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub direction: EnemyDirection,
+    pub speed: f32,
+    pub patrol_start: f32,
+    pub patrol_end: f32,
+}
+
+impl Enemy {
+    /// Create a new enemy
+    pub fn new(x: f32, y: f32, patrol_start: f32, patrol_end: f32) -> Self {
+        Self {
+            x,
+            y,
+            width: 16.0,
+            height: 16.0,
+            direction: EnemyDirection::Right,
+            speed: 30.0,
+            patrol_start,
+            patrol_end,
+        }
+    }
+
+    /// Update enemy movement
+    pub fn update(&mut self, delta_time: f32) {
+        // Simple patrol AI
+        match self.direction {
+            EnemyDirection::Right => {
+                self.x += self.speed * delta_time;
+                if self.x >= self.patrol_end {
+                    self.direction = EnemyDirection::Left;
+                }
+            }
+            EnemyDirection::Left => {
+                self.x -= self.speed * delta_time;
+                if self.x <= self.patrol_start {
+                    self.direction = EnemyDirection::Right;
+                }
+            }
+        }
+    }
+
+    /// Draw the enemy (Goomba-like)
+    pub fn draw(&self) {
+        let x = self.x;
+        let y = self.y;
+        let w = self.width;
+        let h = self.height;
+
+        // Body (brown mushroom-like)
+        let body_color = Color::new(0.5, 0.3, 0.1, 1.0);
+        draw_rectangle(x + 2.0, y + h * 0.3, w - 4.0, h * 0.7, body_color);
+        
+        // Head (round, darker brown)
+        let head_color = Color::new(0.4, 0.2, 0.05, 1.0);
+        draw_circle(x + w / 2.0, y + h * 0.25, w * 0.4, head_color);
+
+        // Eyes (angry looking)
+        draw_circle(x + w * 0.35, y + h * 0.2, 2.0, WHITE);
+        draw_circle(x + w * 0.65, y + h * 0.2, 2.0, WHITE);
+        draw_circle(x + w * 0.35, y + h * 0.2, 1.0, BLACK);
+        draw_circle(x + w * 0.65, y + h * 0.2, 1.0, BLACK);
+
+        // Eyebrows (angry)
+        draw_line(x + w * 0.3, y + h * 0.15, x + w * 0.4, y + h * 0.1, 2.0, BLACK);
+        draw_line(x + w * 0.6, y + h * 0.1, x + w * 0.7, y + h * 0.15, 2.0, BLACK);
+
+        // Feet
+        draw_rectangle(x, y + h - 3.0, 5.0, 3.0, BLACK);
+        draw_rectangle(x + w - 5.0, y + h - 3.0, 5.0, 3.0, BLACK);
+    }
+
+    /// Check if enemy intersects with a rectangle
+    pub fn intersects(&self, x: f32, y: f32, width: f32, height: f32) -> bool {
+        x < self.x + self.width &&
+        x + width > self.x &&
+        y < self.y + self.height &&
+        y + height > self.y
+    }
+}
+
 /// Main game state and logic
 pub struct SimpleLevel {
-    player: Player,
+    pub player: Player,
     platforms: Vec<Platform>,
     goal: Goal,
+    trees: Vec<Tree>,
+    enemies: Vec<Enemy>,
     pub game_won: bool,
     camera_x: f32,
 }
@@ -269,10 +488,26 @@ impl SimpleLevel {
         // Final platform with goal
         platforms.push(Platform::new(850.0, 200.0, 100.0, PLATFORM_HEIGHT));
 
+        // Add decorative trees
+        let mut trees = Vec::new();
+        trees.push(Tree::new(100.0, 400.0, 40.0));
+        trees.push(Tree::new(300.0, 450.0, 35.0));
+        trees.push(Tree::new(520.0, 350.0, 45.0));
+        trees.push(Tree::new(700.0, 250.0, 38.0));
+        trees.push(Tree::new(950.0, 200.0, 42.0));
+
+        // Add enemies
+        let mut enemies = Vec::new();
+        enemies.push(Enemy::new(220.0, 400.0 - 16.0, 210.0, 380.0)); // Ground patrol
+        enemies.push(Enemy::new(470.0, 350.0 - 16.0, 460.0, 540.0)); // Platform patrol
+        enemies.push(Enemy::new(620.0, 300.0 - 16.0, 610.0, 710.0)); // Longer patrol
+
         Self {
             player: Player::new(50.0, 50.0),
             platforms,
             goal: Goal::new(870.0, 140.0),
+            trees,
+            enemies,
             game_won: false,
             camera_x: 0.0,
         }
@@ -282,6 +517,22 @@ impl SimpleLevel {
     pub fn update(&mut self, delta_time: f32) {
         if !self.game_won {
             self.player.update(&self.platforms, delta_time);
+            
+            // Update enemies
+            for enemy in &mut self.enemies {
+                enemy.update(delta_time);
+            }
+            
+            // Check enemy collisions (simple reset for now)
+            for enemy in &self.enemies {
+                if enemy.intersects(self.player.x, self.player.y, self.player.width, self.player.height) {
+                    // Reset player position on enemy collision
+                    self.player.x = 50.0;
+                    self.player.y = 50.0;
+                    self.player.velocity_x = 0.0;
+                    self.player.velocity_y = 0.0;
+                }
+            }
             
             // Simple camera follow
             let target_camera_x = self.player.x - screen_width() / 2.0;
@@ -304,6 +555,16 @@ impl SimpleLevel {
         // Apply camera offset
         let camera_offset = -self.camera_x;
         
+        // Draw trees (background elements)
+        for tree in &self.trees {
+            let tree_with_offset = Tree::new(
+                tree.x + camera_offset,
+                tree.y,
+                tree.height,
+            );
+            tree_with_offset.draw();
+        }
+        
         // Draw platforms
         for platform in &self.platforms {
             let platform_with_offset = Platform::new(
@@ -315,12 +576,22 @@ impl SimpleLevel {
             platform_with_offset.draw();
         }
         
+        // Draw enemies
+        for enemy in &self.enemies {
+            let mut enemy_with_offset = enemy.clone();
+            enemy_with_offset.x += camera_offset;
+            enemy_with_offset.draw();
+        }
+        
         // Draw goal
         let goal_copy = Goal::new(self.goal.x + camera_offset, self.goal.y);
         goal_copy.draw();
         
-        // Draw player
-        let player_copy = Player::new(self.player.x + camera_offset, self.player.y);
+        // Draw player (on top of everything)
+        let mut player_copy = Player::new(self.player.x + camera_offset, self.player.y);
+        player_copy.facing_right = self.player.facing_right;
+        player_copy.animation_state = self.player.animation_state;
+        player_copy.animation_timer = self.player.animation_timer;
         player_copy.draw();
         
         // Draw UI

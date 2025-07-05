@@ -8,12 +8,16 @@ A simple Mario-like platformer game built with Rust and the macroquad library.
 
 ## Features
 
-- **Controllable Player**: Move and jump with a red square character representing Mario
-- **Platforms**: Navigate through various platforms with realistic physics
+- **Enhanced Mario Character**: Detailed sprite with red cap, blue overalls, and directional animations
+- **Animation System**: Walking, jumping, and idle animations with direction awareness
+- **Environmental Elements**: Decorative trees throughout the level for visual appeal
+- **Enemy System**: Goomba-like enemies with patrol AI and collision detection
+- **Improved Platforms**: Navigate through various platforms with realistic physics
 - **Goal System**: Reach the green flag to win the level
 - **Camera Follow**: Smooth camera that follows the player
 - **Physics**: Gravity, jumping, and collision detection
 - **Screenshot Capture**: Generate screenshots of the game for documentation
+- **10-Second Recording**: Create animated GIFs of gameplay demonstrations
 
 ## Controls
 
@@ -47,6 +51,27 @@ cargo run --bin generate_screenshot
 ```
 
 This will create a screenshot at `assets/screenshot.png` showing the initial game state. The screenshot generator uses macroquad's screen capture functionality to save a PNG image of the rendered game.
+
+## 10-Second Recording
+
+Generate an animated GIF recording of the gameplay:
+
+```bash
+cargo run --bin recording_test
+```
+
+This creates a 10-second recording saved as `assets/10_second_recording.gif` that demonstrates:
+- Enhanced Mario character with animations
+- Environmental elements (trees)
+- Enemy interactions and AI
+- Platform navigation and physics
+- Camera following and visual improvements
+
+The recording feature is implemented using:
+- `GameRecorder` struct for frame capture
+- Automated gameplay scripting for consistent demonstration
+- GIF encoding using the `gif` crate
+- 10 FPS capture rate for optimal file size
 
 The screenshot feature is implemented using:
 - `get_screen_data()` to capture the current screen
