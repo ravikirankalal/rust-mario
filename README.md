@@ -54,7 +54,7 @@ This will create a screenshot at `assets/screenshot.png` showing the initial gam
 
 ## 10-Second Recording
 
-Generate an animated GIF recording of the gameplay:
+A pre-generated 10-second recording is available at `assets/10_second_recording.gif` that demonstrates all the game features. You can also generate a new recording using:
 
 ```bash
 cargo run --bin recording_test
