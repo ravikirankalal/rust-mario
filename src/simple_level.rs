@@ -244,7 +244,7 @@ pub struct SimpleLevel {
     player: Player,
     platforms: Vec<Platform>,
     goal: Goal,
-    game_won: bool,
+    pub game_won: bool,
     camera_x: f32,
 }
 
@@ -350,6 +350,21 @@ impl SimpleLevel {
     /// Check if the game should quit
     pub fn should_quit(&self) -> bool {
         is_key_pressed(KeyCode::Escape)
+    }
+
+    /// Generate a screenshot of the current game state and save it to the specified path
+    /// 
+    /// # Arguments
+    /// * `filepath` - The path where the screenshot should be saved
+    /// 
+    /// # Returns
+    /// * `Result<(), Box<dyn std::error::Error>>` - Ok if successful, Err if failed
+    pub fn take_screenshot<P: AsRef<std::path::Path>>(&self, filepath: P) -> Result<(), Box<dyn std::error::Error>> {
+        // First render the current game state to ensure the screen has the latest frame
+        self.draw();
+        
+        // Capture and save the screenshot
+        crate::screenshot::capture_screenshot(filepath)
     }
 }
 
